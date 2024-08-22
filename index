@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Audit Tool</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key= AIzaSyDCgs_jZX63xfYmWg2L1wwUay0zAQdov8Q&libraries=drawing"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #map-container, #streetview-container {
+            height: 400px;
+            margin-bottom: 20px;
+        }
+        #audit-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Virtual Audit Tool</h1>
+    
+    <div id="map-container"></div>
+    <div id="streetview-container"></div>
+    
+    <form id="audit-form">
+        <div>
+            <label for="building-type">Building Type:</label>
+            <select id="building-type" name="building-type">
+                <option value="residential">Residential</option>
+                <option value="commercial">Commercial</option>
+                <option value="industrial">Industrial</option>
+                <option value="mixed-use">Mixed-Use</option>
+            </select>
+        </div>
+        <div>
+            <label for="condition">Building Condition:</label>
+            <select id="condition" name="condition">
+                <option value="excellent">Excellent</option>
+                <option value="good">Good</option>
+                <option value="fair">Fair</option>
+                <option value="poor">Poor</option>
+            </select>
+        </div>
+        <div>
+            <label for="stories">Number of Stories:</label>
+            <input type="number" id="stories" name="stories" min="1">
+        </div>
+        <div>
+            <label for="sidewalk">Sidewalk Present:</label>
+            <input type="checkbox" id="sidewalk" name="sidewalk">
+        </div>
+        <div>
+            <label for="notes">Additional Notes:</label>
+            <textarea id="notes" name="notes"></textarea>
+        </div>
+    </form>
+    
+    <button onclick="saveAuditData()">Save Audit Data</button>
+    <button onclick="exportCSV()">Export to CSV</button>
+
+    <script>
+        let map, drawingManager, streetViewService, panorama;
+        let auditData = [];
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map-container'), {
+                center: {lat: 40.7128, lng: -74.0060},
+                zoom: 13
+            });
+
+            drawingManager = new google.maps.drawing.DrawingManager({
+                drawingMode: google.maps.drawing.OverlayType.POLYGON,
+                drawingControl: true,
+                drawingControlOptions: {
+                    position: google.maps.ControlPosition.TOP_CENTER,
+                    drawingModes: ['polygon']
+                }
+            });
+            drawingManager.setMap(map);
+
+            google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
+                if (event.type === 'polygon') {
+                    let polygon = event.overlay;
+                    let center = polygon.getBounds().getCenter();
+                    initStreetView(center);
+                }
+            });
+
+            streetViewService = new google.maps.StreetViewService();
+            panorama = new google.maps.StreetViewPanorama(document.getElementById('streetview-container'));
+        }
+
+        function initStreetView(location) {
+            streetViewService.getPanorama({location: location, radius: 50}, function(data, status) {
+                if (status === 'OK') {
+                    panorama.setPosition(data.location.latLng);
+                } else {
+                    console.error('Street View data not found for this location.');
+                }
+            });
+        }
+
+        function saveAuditData() {
+            let formData = new FormData(document.getElementById('audit-form'));
+            let data = Object.fromEntries(formData);
+            data.lat = panorama.getPosition().lat();
+            data.lng = panorama.getPosition().lng();
+            data.timestamp = new Date().toISOString();
+            auditData.push(data);
+            alert('Audit data saved!');
+        }
+
+        function exportCSV() {
+            let csv = Papa.unparse(auditData);
+            let blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+            let link = document.createElement("a");
+            if (link.download !== undefined) {
+                let url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", "audit_data.csv");
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>
