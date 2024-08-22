@@ -30,7 +30,7 @@
     </style>
 </head>
 <body>
-    <h1>Virtual Audit Tool</h1>
+    <h1>Street Virtual Audit Tool</h1>
     
     <div id="map-container"></div>
     <div id="streetview-container"></div>
