@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Virtual Audit Tool</title>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBqeiTC0SqC1eklN4QvVFkCO0atKNtCRn4&libraries=drawing"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -30,7 +28,7 @@
     </style>
 </head>
 <body>
-    <h1>Street Virtual Audit Tool</h1>
+    <h1>Virtual Audit Tool</h1>
     
     <div id="map-container"></div>
     <div id="streetview-container"></div>
@@ -71,46 +69,63 @@
     <button onclick="saveAuditData()">Save Audit Data</button>
     <button onclick="exportCSV()">Export to CSV</button>
 
+    <script src="https://maps.googleapis.com/maps/api/js?libraries=drawing"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
-        let map, drawingManager, streetViewService, panorama;
+        const VERCEL_URL = 'https://your-project-name.vercel.app'; // Replace with your actual Vercel project URL
+        let map, drawingManager, panorama;
         let auditData = [];
 
-        function initMap() {
-            map = new google.maps.Map(document.getElementById('map-container'), {
-                center: {lat: 40.7128, lng: -74.0060},
+        async function initMap() {
+            const mapOptions = {
+                center: { lat: 40.7128, lng: -74.0060 },
                 zoom: 13
-            });
+            };
 
-            drawingManager = new google.maps.drawing.DrawingManager({
-                drawingMode: google.maps.drawing.OverlayType.POLYGON,
-                drawingControl: true,
-                drawingControlOptions: {
-                    position: google.maps.ControlPosition.TOP_CENTER,
-                    drawingModes: ['polygon']
-                }
-            });
-            drawingManager.setMap(map);
+            try {
+                const response = await fetch(`${VERCEL_URL}/api/maps-proxy?endpoint=maps/api/js/MapService.GetMapData&params=${encodeURIComponent('cb=google.maps.c._k')}`);
+                const data = await response.json();
+                
+                // Use the data to initialize the map (this is a simplified example)
+                map = new google.maps.Map(document.getElementById('map-container'), mapOptions);
 
-            google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
-                if (event.type === 'polygon') {
-                    let polygon = event.overlay;
-                    let center = polygon.getBounds().getCenter();
-                    initStreetView(center);
-                }
-            });
+                drawingManager = new google.maps.drawing.DrawingManager({
+                    drawingMode: google.maps.drawing.OverlayType.POLYGON,
+                    drawingControl: true,
+                    drawingControlOptions: {
+                        position: google.maps.ControlPosition.TOP_CENTER,
+                        drawingModes: ['polygon']
+                    }
+                });
+                drawingManager.setMap(map);
 
-            streetViewService = new google.maps.StreetViewService();
-            panorama = new google.maps.StreetViewPanorama(document.getElementById('streetview-container'));
+                google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
+                    if (event.type === 'polygon') {
+                        let polygon = event.overlay;
+                        let center = polygon.getBounds().getCenter();
+                        initStreetView(center);
+                    }
+                });
+
+                panorama = new google.maps.StreetViewPanorama(document.getElementById('streetview-container'));
+            } catch (error) {
+                console.error('Error initializing map:', error);
+            }
         }
 
-        function initStreetView(location) {
-            streetViewService.getPanorama({location: location, radius: 50}, function(data, status) {
-                if (status === 'OK') {
-                    panorama.setPosition(data.location.latLng);
+        async function initStreetView(location) {
+            try {
+                const response = await fetch(`${VERCEL_URL}/api/maps-proxy?endpoint=streetview/metadata&params=${encodeURIComponent(`location=${location.lat()},${location.lng()}`)}`);
+                const data = await response.json();
+                
+                if (data.status === 'OK') {
+                    panorama.setPosition(new google.maps.LatLng(data.location.lat, data.location.lng));
                 } else {
                     console.error('Street View data not found for this location.');
                 }
-            });
+            } catch (error) {
+                console.error('Error initializing Street View:', error);
+            }
         }
 
         function saveAuditData() {
