@@ -69,61 +69,51 @@
     <button onclick="saveAuditData()">Save Audit Data</button>
     <button onclick="exportCSV()">Export to CSV</button>
 
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=drawing&callback=initMap"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA6t_WxS5BZBTDa1_4vAb_x9UIVGEMvt9M&libraries=drawing" async defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
         const VERCEL_URL = 'https://audit-pearl.vercel.app/'; // Replace with your actual Vercel project URL
         let map, drawingManager, panorama;
         let auditData = [];
 
+let map, drawingManager, panorama;
+const VERCEL_URL = 'https://your-project-name.vercel.app'; // Replace with your actual Vercel project URL
+
 function initMap() {
-    return new Promise((resolve, reject) => {
-        const VERCEL_URL = 'https://your-project-name.vercel.app'; // Replace with your actual Vercel project URL
-        let map, drawingManager, panorama;
+    const mapOptions = {
+        center: { lat: 40.7128, lng: -74.0060 }, // Default to New York City
+        zoom: 13
+    };
 
-        const mapOptions = {
-            center: { lat: 40.7128, lng: -74.0060 }, // Default to New York City
-            zoom: 13
-        };
+    map = new google.maps.Map(document.getElementById('map-container'), mapOptions);
 
-        try {
-            map = new google.maps.Map(document.getElementById('map-container'), mapOptions);
-
-            drawingManager = new google.maps.drawing.DrawingManager({
-                drawingMode: google.maps.drawing.OverlayType.POLYGON,
-                drawingControl: true,
-                drawingControlOptions: {
-                    position: google.maps.ControlPosition.TOP_CENTER,
-                    drawingModes: ['polygon']
-                }
-            });
-            drawingManager.setMap(map);
-
-            google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
-                if (event.type === 'polygon') {
-                    let polygon = event.overlay;
-                    let center = polygon.getBounds().getCenter();
-                    initStreetView(center);
-                }
-            });
-
-            panorama = new google.maps.StreetViewPanorama(document.getElementById('streetview-container'));
-
-            // Initialize StreetView with the map's center
-            initStreetView(mapOptions.center);
-
-            resolve();
-        } catch (error) {
-            console.error('Error initializing map:', error);
-            reject(error);
+    drawingManager = new google.maps.drawing.DrawingManager({
+        drawingMode: google.maps.drawing.OverlayType.POLYGON,
+        drawingControl: true,
+        drawingControlOptions: {
+            position: google.maps.ControlPosition.TOP_CENTER,
+            drawingModes: ['polygon']
         }
     });
+    drawingManager.setMap(map);
+
+    google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
+        if (event.type === 'polygon') {
+            let polygon = event.overlay;
+            let center = polygon.getBounds().getCenter();
+            initStreetView(center);
+        }
+    });
+
+    panorama = new google.maps.StreetViewPanorama(document.getElementById('streetview-container'));
+
+    // Initialize StreetView with the map's center
+    initStreetView(mapOptions.center);
 }
 
 async function initStreetView(location) {
-    const VERCEL_URL = 'https://audit-pearl.vercel.app/'; // Replace with your actual Vercel project URL
     try {
-        const response = await fetch(`${VERCEL_URL}/api/maps-proxy?endpoint=streetview/metadata&params=${encodeURIComponent(`location=${location.lat()},${location.lng()}`)}`);
+        const response = await fetch(`${VERCEL_URL}/api/maps-proxy?endpoint=streetview/metadata&params=${encodeURIComponent(`location=${location.lat},${location.lng}`)}`);
         const data = await response.json();
         
         if (data.status === 'OK') {
@@ -136,11 +126,9 @@ async function initStreetView(location) {
     }
 }
 
-// Call initMap when the Google Maps API has loaded
-google.maps.event.addDomListener(window, 'load', function() {
-    initMap().catch(error => console.error('Failed to initialize map:', error));
-});
-
+// Wait for the Google Maps API to load before initializing
+window.initMap = initMap;
+        
         function saveAuditData() {
             let formData = new FormData(document.getElementById('audit-form'));
             let data = Object.fromEntries(formData);
