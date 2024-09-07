@@ -33,100 +33,113 @@
     <div id="map-container"></div>
     <div id="streetview-container"></div>
     
-    <form id="audit-form">
-        <div>
-            <label for="building-type">Building Type:</label>
-            <select id="building-type" name="building-type">
-                <option value="residential">Residential</option>
-                <option value="commercial">Commercial</option>
-                <option value="industrial">Industrial</option>
-                <option value="mixed-use">Mixed-Use</option>
-            </select>
-        </div>
-        <div>
-            <label for="condition">Building Condition:</label>
-            <select id="condition" name="condition">
-                <option value="excellent">Excellent</option>
-                <option value="good">Good</option>
-                <option value="fair">Fair</option>
-                <option value="poor">Poor</option>
-            </select>
-        </div>
-        <div>
-            <label for="stories">Number of Stories:</label>
-            <input type="number" id="stories" name="stories" min="1">
-        </div>
-        <div>
-            <label for="sidewalk">Sidewalk Present:</label>
-            <input type="checkbox" id="sidewalk" name="sidewalk">
-        </div>
-        <div>
-            <label for="notes">Additional Notes:</label>
-            <textarea id="notes" name="notes"></textarea>
-        </div>
-    </form>
+<form id="audit-form">
+    <div>
+        <label for="building-type">Building Type:</label>
+        <select id="building-type" name="building-type">
+            <option value="residential">Residential</option>
+            <option value="commercial">Commercial</option>
+            <option value="industrial">Industrial</option>
+            <option value="mixed-use">Mixed-Use</option>
+        </select>
+    </div>
+    <div>
+        <label for="condition">Building Condition:</label>
+        <select id="condition" name="condition">
+            <option value="excellent">Excellent</option>
+            <option value="good">Good</option>
+            <option value="fair">Fair</option>
+            <option value="poor">Poor</option>
+        </select>
+    </div>
+    <div>
+        <label for="stories">Number of Stories:</label>
+        <input type="number" id="stories" name="stories" min="1">
+    </div>
+    <div>
+        <label for="sidewalk">Sidewalk Present:</label>
+        <input type="checkbox" id="sidewalk" name="sidewalk">
+    </div>
+    <div>
+        <label for="notes">Additional Notes:</label>
+        <textarea id="notes" name="notes"></textarea>
+    </div>
+</form>
     
     <button onclick="saveAuditData()">Save Audit Data</button>
     <button onclick="exportCSV()">Export to CSV</button>
 
-    <script src="https://maps.googleapis.com/maps/api/js?libraries=drawing"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=drawing&callback=initMap"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
         const VERCEL_URL = 'https://audit-pearl.vercel.app/'; // Replace with your actual Vercel project URL
         let map, drawingManager, panorama;
         let auditData = [];
 
-        async function initMap() {
-            const mapOptions = {
-                center: { lat: 40.7128, lng: -74.0060 },
-                zoom: 13
-            };
+function initMap() {
+    return new Promise((resolve, reject) => {
+        const VERCEL_URL = 'https://your-project-name.vercel.app'; // Replace with your actual Vercel project URL
+        let map, drawingManager, panorama;
 
-            try {
-                const response = await fetch(`${VERCEL_URL}/api/maps-proxy?endpoint=maps/api/js/MapService.GetMapData&params=${encodeURIComponent('cb=google.maps.c._k')}`);
-                const data = await response.json();
-                
-                // Use the data to initialize the map (this is a simplified example)
-                map = new google.maps.Map(document.getElementById('map-container'), mapOptions);
+        const mapOptions = {
+            center: { lat: 40.7128, lng: -74.0060 }, // Default to New York City
+            zoom: 13
+        };
 
-                drawingManager = new google.maps.drawing.DrawingManager({
-                    drawingMode: google.maps.drawing.OverlayType.POLYGON,
-                    drawingControl: true,
-                    drawingControlOptions: {
-                        position: google.maps.ControlPosition.TOP_CENTER,
-                        drawingModes: ['polygon']
-                    }
-                });
-                drawingManager.setMap(map);
+        try {
+            map = new google.maps.Map(document.getElementById('map-container'), mapOptions);
 
-                google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
-                    if (event.type === 'polygon') {
-                        let polygon = event.overlay;
-                        let center = polygon.getBounds().getCenter();
-                        initStreetView(center);
-                    }
-                });
-
-                panorama = new google.maps.StreetViewPanorama(document.getElementById('streetview-container'));
-            } catch (error) {
-                console.error('Error initializing map:', error);
-            }
-        }
-
-        async function initStreetView(location) {
-            try {
-                const response = await fetch(`${VERCEL_URL}/api/maps-proxy?endpoint=streetview/metadata&params=${encodeURIComponent(`location=${location.lat()},${location.lng()}`)}`);
-                const data = await response.json();
-                
-                if (data.status === 'OK') {
-                    panorama.setPosition(new google.maps.LatLng(data.location.lat, data.location.lng));
-                } else {
-                    console.error('Street View data not found for this location.');
+            drawingManager = new google.maps.drawing.DrawingManager({
+                drawingMode: google.maps.drawing.OverlayType.POLYGON,
+                drawingControl: true,
+                drawingControlOptions: {
+                    position: google.maps.ControlPosition.TOP_CENTER,
+                    drawingModes: ['polygon']
                 }
-            } catch (error) {
-                console.error('Error initializing Street View:', error);
-            }
+            });
+            drawingManager.setMap(map);
+
+            google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
+                if (event.type === 'polygon') {
+                    let polygon = event.overlay;
+                    let center = polygon.getBounds().getCenter();
+                    initStreetView(center);
+                }
+            });
+
+            panorama = new google.maps.StreetViewPanorama(document.getElementById('streetview-container'));
+
+            // Initialize StreetView with the map's center
+            initStreetView(mapOptions.center);
+
+            resolve();
+        } catch (error) {
+            console.error('Error initializing map:', error);
+            reject(error);
         }
+    });
+}
+
+async function initStreetView(location) {
+    const VERCEL_URL = 'https://audit-pearl.vercel.app/'; // Replace with your actual Vercel project URL
+    try {
+        const response = await fetch(`${VERCEL_URL}/api/maps-proxy?endpoint=streetview/metadata&params=${encodeURIComponent(`location=${location.lat()},${location.lng()}`)}`);
+        const data = await response.json();
+        
+        if (data.status === 'OK') {
+            panorama.setPosition(new google.maps.LatLng(data.location.lat, data.location.lng));
+        } else {
+            console.error('Street View data not found for this location.');
+        }
+    } catch (error) {
+        console.error('Error initializing Street View:', error);
+    }
+}
+
+// Call initMap when the Google Maps API has loaded
+google.maps.event.addDomListener(window, 'load', function() {
+    initMap().catch(error => console.error('Failed to initialize map:', error));
+});
 
         function saveAuditData() {
             let formData = new FormData(document.getElementById('audit-form'));
