@@ -76,13 +76,18 @@
         let map, drawingManager, panorama;
         const VERCEL_URL = 'https://audit-pearl.vercel.app/'; // Replace with your actual Vercel project URL
         let auditData = [];
+        
+function initMap() {
+    return new Promise((resolve, reject) => {
+        const VERCEL_URL = 'https://your-project-name.vercel.app'; // Replace with your actual Vercel project URL
+        let map, drawingManager, panorama;
 
-        function initMap() {
-            const mapOptions = {
-                center: { lat: 40.7128, lng: -74.0060 }, // Default to New York City
-                zoom: 13
-            };
+        const mapOptions = {
+            center: { lat: 40.7128, lng: -74.0060 }, // Default to New York City
+            zoom: 13
+        };
 
+        try {
             map = new google.maps.Map(document.getElementById('map-container'), mapOptions);
 
             drawingManager = new google.maps.drawing.DrawingManager({
@@ -107,7 +112,35 @@
 
             // Initialize StreetView with the map's center
             initStreetView(mapOptions.center);
+
+            resolve();
+        } catch (error) {
+            console.error('Error initializing map:', error);
+            reject(error);
         }
+    });
+}
+
+async function initStreetView(location) {
+    const VERCEL_URL = 'https://your-project-name.vercel.app'; // Replace with your actual Vercel project URL
+    try {
+        const response = await fetch(`${VERCEL_URL}/api/maps-proxy?endpoint=streetview/metadata&params=${encodeURIComponent(`location=${location.lat()},${location.lng()}`)}`);
+        const data = await response.json();
+        
+        if (data.status === 'OK') {
+            panorama.setPosition(new google.maps.LatLng(data.location.lat, data.location.lng));
+        } else {
+            console.error('Street View data not found for this location.');
+        }
+    } catch (error) {
+        console.error('Error initializing Street View:', error);
+    }
+}
+
+// Call initMap when the Google Maps API has loaded
+google.maps.event.addDomListener(window, 'load', function() {
+    initMap().catch(error => console.error('Failed to initialize map:', error));
+});
 
         async function initStreetView(location) {
             try {
