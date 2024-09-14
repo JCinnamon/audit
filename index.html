@@ -70,7 +70,7 @@
     <button onclick="saveAuditData()">Save Audit Data</button>
     <button onclick="exportCSV()">Export to CSV</button>
 
-    <script src="https://maps.googleapis.com/maps/api/js?key=API_KEY_HERE&libraries=drawing" async defer></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=GOOGLE_MAPS_API_KEY&libraries=drawing&callback=initMap"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
         let map, drawingManager, panorama;
